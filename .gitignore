@@ -29,3 +29,7 @@ mp_before.json
 
 # WorkBuddy 工作笔记，不是项目内容
 .workbuddy/
+
+# 凭证文件，绝不入库
+*git-key*
+*.token
