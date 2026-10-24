@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModelProof 报告 {{ report.run_id }}</title>
+<style>
+  :root{
+    --bg:#f2f3f3; --panel:#fff; --ink:#16191f; --ink2:#5f6b7a;
+    --line:#e9ebed; --line2:#c6cdd1; --blue:#0972d3;
+    --ok:#037f0c; --err:#d91515; --warn:#8a6a0b;
+    --okbg:#f2f8f0; --errbg:#fdf3f2; --warnbg:#fdf5e6; --infobg:#f0f7fe;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/20px "Amazon Ember","Open Sans","Helvetica Neue",Roboto,Arial,
+    "PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  header{background:#16191f;color:#fff;padding:0 24px;height:56px;
+    display:flex;align-items:center;gap:12px}
+  .mark{width:30px;height:30px;border-radius:4px;background:var(--blue);
+    display:grid;place-items:center;font-weight:700;font-size:13px}
+  header strong{font-size:15px;font-weight:700}
+  header span{color:#9ba7b4;font-size:11px;display:block;font-weight:400}
+  main{max-width:960px;margin:0 auto;padding:24px 24px 64px}
+  h1{font-size:24px;line-height:32px;margin:0 0 4px}
+  .desc{color:var(--ink2);margin-bottom:20px}
+  .container{background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;margin-bottom:16px;overflow:hidden}
+  .ch{padding:16px 24px 12px}
+  .ch h2{font-size:18px;line-height:24px;margin:0}
+  .ch p{margin:4px 0 0;color:var(--ink2);font-size:14px}
+  .cc{padding:12px 24px 20px}
+  .cf{padding:12px 24px;border-top:1px solid var(--line);background:#fbfbfb;
+    color:var(--ink2);font-size:12px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:16px;margin-bottom:16px}
+  .card{border:1px solid var(--line);border-top:2px solid var(--line2);
+    border-radius:4px;padding:16px;background:#fff}
+  .card.ok{border-top-color:var(--ok);background:#fcfdfc}
+  .card .k{font-size:14px;color:var(--ink2)}
+  .card .v{font-size:28px;font-weight:300;line-height:36px;margin:2px 0}
+  .card .n{font-size:12px;color:var(--ink2)}
+  .bar{height:8px;background:#eaeded;border-radius:4px;overflow:hidden;margin-top:8px}
+  .bar>i{display:block;height:100%;background:var(--blue);border-radius:4px}
+  .bar.ok>i{background:#1e8900}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;padding:12px;background:#fbfbfb;color:var(--ink);
+    border-bottom:2px solid var(--line2);font-weight:700}
+  td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#f7fbff}
+  .sub{color:var(--ink2);font-size:12px;line-height:18px;margin-top:2px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:#f5f6f7;padding:1px 5px;border-radius:3px}
+  .badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:12px;
+    line-height:18px;background:#f2f3f3;color:var(--ink)}
+  .badge.blue{background:#e6f2fe;color:var(--blue)}
+  .badge.green{background:#e3f5e6;color:var(--ok)}
+  .badge.red{background:#fdeceb;color:var(--err)}
+  .badge.amber{background:#fdf3e0;color:var(--warn)}
+  .alert{display:flex;gap:12px;padding:12px 16px;border-radius:8px;
+    border-left:4px solid var(--line2);background:#f2f3f3;margin-bottom:8px;font-size:14px}
+  .alert.ok{border-left-color:var(--ok);background:var(--okbg)}
+  .alert.warn{border-left-color:var(--warn);background:var(--warnbg)}
+  .alert.err{border-left-color:var(--err);background:var(--errbg)}
+  .alert.info{border-left-color:var(--blue);background:var(--infobg)}
+  .alert b{font-weight:700}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+  .status::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+  .status.ok{color:var(--ok)}.status.err{color:var(--err)}
+  .status.warn{color:var(--warn)}.status.info{color:var(--blue)}
+  footer{border-top:1px solid var(--line);padding:20px 24px;text-align:center;
+    color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">MP</span>
+  <div><strong>ModelProof</strong><span>模型身份验真工具</span></div>
+</header>
+
+<main>
+  <h1>验证报告</h1>
+  <p class="desc">
+    <code>{{ report.run_id }}</code>
+    {% if report.input.base_url %}· {{ report.input.base_url }}{% endif %}
+    {% if report.input.declared_model %}· {{ report.input.declared_model }}{% endif %}
+    · {{ report.started_at }}
+  </p>
+
+  <section class="container">
+    <div class="ch"><h2>结论</h2>
+      <p>逐层独立判定，达不到阈值即弃权。</p></div>
+    <div class="cc">
+      <div class="cards">
+        {% for layer in ['vendor','family','series','version'] %}
+        {% set v = report.layers.get(layer) %}
+        {% if v %}
+        <div class="card {% if not v.abstained and v.value %}ok{% endif %}">
+          <div class="k">{{ layer }}</div>
+          <div class="v">{{ v.value if (not v.abstained and v.value) else '弃权' }}</div>
+          <div class="n">置信度 {{ '%.0f' % (v.confidence * 100) }}%</div>
+          <div class="bar {% if not v.abstained and v.value %}ok{% endif %}">
+            <i style="width:{{ '%.0f' % (v.confidence * 100) }}%"></i>
+          </div>
+          {% if v.detail %}<div class="n" style="margin-top:8px">{{ v.detail }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {% if report.gateway %}
+  <section class="container">
+    <div class="ch"><h2>接入链路</h2>
+      <p>这条不问模型身份，只问「这个入口是谁搭的」，不参与身份打分。</p></div>
+    <div class="cc">
+      <p>
+        <span class="badge {% if report.gateway.verdict in ['official_direct','official_cloud'] %}green{% elif report.gateway.verdict == 'unknown' %}{% else %}amber{% endif %}">
+          {{ report.gateway.label or report.gateway.verdict }}
+        </span>
+        <span class="sub">· {{ report.gateway.host }} · 置信度 {{ '%.0f' % (report.gateway.confidence * 100) }}%</span>
+      </p>
+      {% if report.gateway.reason %}<p class="sub">{{ report.gateway.reason }}</p>{% endif %}
+      {% for s in (report.gateway.behaviour_signals or []) %}
+      <div class="alert warn"><span>{{ s.text }}{% if s.note %}<div class="sub">{{ s.note }}</div>{% endif %}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if report.truthfulness and report.truthfulness.verdict != 'unknown' %}
+  <section class="container">
+    <div class="ch"><h2>真伪核验</h2></div>
+    <div class="cc">
+      <p>
+        声明 <code>{{ report.truthfulness.claim }}</code> →
+        {% set tv = report.truthfulness.verdict %}
+        <span class="status {% if tv == 'consistent' %}ok{% elif tv == 'suspicious' %}warn{% else %}err{% endif %}">
+          {{ tv }}
+        </span>
+        <span class="sub">（{{ '%.0f' % (report.truthfulness.confidence * 100) }}%）</span>
+      </p>
+      {% if report.truthfulness.checks %}
+      <table>
+        <thead><tr><th>字段</th><th>声明</th><th>观测</th><th>一致</th></tr></thead>
+        <tbody>
+        {% for c in report.truthfulness.checks %}
+        <tr>
+          <td>{{ c.field }}</td>
+          <td>{{ c.claimed }}</td>
+          <td>{{ c.observed }}</td>
+          <td>
+            {% if c.match %}<span class="status ok">是</span>
+            {% elif c.match == false %}<span class="status err">否</span>
+            {% else %}<span class="sub">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% if report.truthfulness.note %}<p class="sub" style="margin-top:12px">{{ report.truthfulness.note }}</p>{% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if report.conflicts %}
+  <section class="container">
+    <div class="ch"><h2>冲突</h2>
+      <p>通道之间打架。冲突往往是最有价值的发现，不是要消除的噪声。</p></div>
+    <div class="cc">
+      {% for c in report.conflicts %}
+      <div class="alert warn">
+        <span>
+          <b>{{ c.layer }}：{{ (c.values or []) | join(' vs ') }}</b>
+          <div class="sub">通道 {{ (c.channels or []) | join('、') }} · {{ c.severity }} · 置信度 ×{{ c.penalty }}</div>
+          {% if c.hint %}<div>{{ c.hint }}</div>{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="container">
+    <div class="ch"><h2>证据</h2></div>
+    <div class="cc">
+      <table>
+        <thead><tr><th>通道</th><th>观测</th><th>命中</th><th>权重</th></tr></thead>
+        <tbody>
+        {% for e in report.evidence %}
+        <tr>
+          <td><code>{{ e.channel }}</code><div class="sub">{{ e.item }}</div></td>
+          <td>{{ e.observed }}{% if e.note %}<div class="sub">{{ e.note }}</div>{% endif %}</td>
+          <td>
+            {% if e.match %}<span class="status ok">命中</span>
+            {% elif e.match == false %}<span class="status err">不符</span>
+            {% else %}<span class="sub">—</span>{% endif %}
+          </td>
+          <td>{{ '%.2f' % e.weight }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="ch"><h2>消耗</h2></div>
+    <div class="cc">
+      <div class="cards" style="margin:0">
+        <div class="card"><div class="k">请求数</div><div class="v">{{ report.cost.requests or 0 }}</div></div>
+        <div class="card"><div class="k">耗时</div><div class="v">{{ '%.1f' % (report.cost.elapsed_seconds or 0) }}s</div></div>
+        <div class="card">
+          <div class="k">费用</div>
+          <div class="v">{{ '%.4f' % (report.cost.amount or 0) }}</div>
+          <div class="n">{{ report.cost.currency or 'USD' }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="cf">{{ report.disclaimer }}</div>
+  </section>
+</main>
+
+<footer>{{ report.disclaimer }}</footer>
+</body>
+</html>

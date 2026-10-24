@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "model_id": "llama-3.3-70b",
+  "aliases": [],
+  "identity": {
+    "vendor": "meta",
+    "family": "llama",
+    "series": "dense",
+    "version": "3.3-70b",
+    "release_date": "",
+    "knowledge_cutoff": "",
+    "context_window": null,
+    "max_output_tokens": null,
+    "modalities": []
+  },
+  "channels": {},
+  "pricing": {},
+  "provenance": {
+    "tier": "derived",
+    "collected_by": "",
+    "method": "整理自厂商公开文档（2026-10-17 核对）",
+    "collected_at": "2026-10-17T09:49:57Z",
+    "endpoint": "",
+    "source_url": "",
+    "note": "仅含身份元数据，**尚无实测指纹**。请用 `modelproof baseline import` 采集 tokenizer / behavior 数据后，本条目才能参与闭集判定。"
+  }
+}

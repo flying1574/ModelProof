@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}基准库 · ModelProof{% endblock %}
+
+{% block content %}
+
+<div class="cs-content-header">
+  <h1>基准库</h1>
+  <p class="cs-content-header__desc">
+    闭集判定的对照组。每条基准记录一个已知模型的可验真数据，并标注来源——
+    没有溯源的数据一律不采信。
+  </p>
+  <div class="cs-content-header__actions">
+    <a class="cs-btn cs-btn--normal" href="/">返回验证</a>
+  </div>
+</div>
+
+<div class="cs-stack">
+
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>切换基准库</h2>
+      <p class="cs-container__desc">验证时选哪个库，就在这里核对那个库的内容。</p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-btn-row">
+        {% for b in banks %}
+        <a class="cs-btn {{ 'cs-btn--primary' if b.id == current_bank else 'cs-btn--normal' }}"
+           href="/baselines?bank={{ b.id }}{% if current_vendor %}&vendor={{ current_vendor }}{% endif %}">
+          {{ b.name }} · {{ b.model_count }} 条
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="cs-container__footer">
+      <span class="cs-muted-s">当前库 <code>{{ current_bank }}</code> · 目录 <code>baselines/banks/{{ current_bank }}/models</code></span>
+    </div>
+  </section>
+
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>概览</h2>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-columns">
+        <div class="cs-box">
+          <div class="cs-box__label">条目总数</div>
+          <div class="cs-box__value">{{ stats.total }}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">厂商</div>
+          <div class="cs-box__value">{{ stats.by_vendor | length }}</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">官方溯源</div>
+          <div class="cs-box__value">{{ stats.by_tier.get('official', 0) }}</div>
+          <div class="cs-box__note">权重 1.0</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">社区溯源</div>
+          <div class="cs-box__value">{{ stats.by_tier.get('community', 0) }}</div>
+          <div class="cs-box__note">权重 0.8</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">推导溯源</div>
+          <div class="cs-box__value">{{ stats.by_tier.get('derived', 0) }}</div>
+          <div class="cs-box__note">权重 0.5，不单独支撑结论</div>
+        </div>
+      </div>
+
+      <div class="cs-section">
+        <h3>采集大类覆盖</h3>
+        <div class="cs-badge-row">
+          {% for name, n in stats.by_category.items() %}
+          <span class="cs-badge cs-badge--blue">{{ name }} · {{ n }} 条</span>
+          {% endfor %}
+          {% if not stats.by_category %}
+          <span class="cs-muted-s">尚无实测数据 —— 条目都只有身份元数据</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if problems %}
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>校验问题</h2>
+      <p class="cs-container__desc">以下条目存在 schema 或探针版本问题，不会参与判定。</p>
+    </div>
+    <div class="cs-container__content">
+      {% for model_id, items in problems %}
+      <div class="cs-alert cs-alert--warning">
+        <span class="cs-alert__icon">!</span>
+        <div class="cs-alert__body">
+          <div class="cs-alert__title"><code>{{ model_id }}</code></div>
+          {% for p in items %}<div class="cs-muted-s">{{ p }}</div>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>条目</h2>
+      <p class="cs-container__desc">带实测指纹的条目才能参与闭集判定。</p>
+    </div>
+    <div class="cs-container__content">
+
+      <div class="cs-btn-row" style="margin-bottom: var(--space-m)">
+        <a class="cs-btn cs-btn--normal" href="/baselines">全部</a>
+        {% for v in vendors %}
+        <a class="cs-btn cs-btn--normal" href="/baselines?vendor={{ v }}">{{ v }}</a>
+        {% endfor %}
+      </div>
+
+      <div class="cs-table-wrap">
+        <table class="cs-table">
+          <thead>
+            <tr>
+              <th>Model ID</th>
+              <th>家族 / 系列</th>
+              <th>知识截止</th>
+              <th>溯源</th>
+              <th>采集项数量</th>
+              <th>采集大类</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in entries %}
+            <tr>
+              <td>
+                <code>{{ e.model_id }}</code>
+                {% if e.aliases %}
+                <div class="cs-table__sub">别名：{{ e.aliases | join(' · ') }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {{ e.identity.family }} / {{ e.identity.series }}
+                {% if e.identity.version %}
+                <div class="cs-table__sub">版本 {{ e.identity.version }}</div>
+                {% endif %}
+              </td>
+              <td class="cs-nowrap">{{ e.identity.knowledge_cutoff or '—' }}</td>
+              <td>
+                {% set tier = e.provenance.tier %}
+                {% if tier == 'official' %}
+                <span class="cs-badge cs-badge--green">official</span>
+                {% elif tier == 'community' %}
+                <span class="cs-badge cs-badge--blue">community</span>
+                {% else %}
+                <span class="cs-badge cs-badge--amber">derived</span>
+                {% endif %}
+                {% if e.provenance.method %}
+                <div class="cs-table__sub">{{ e.provenance.method }}</div>
+                {% endif %}
+              </td>
+              <td class="cs-nowrap">{{ e.channel_count or 0 }}</td>
+              <td>
+                {% if e.channel_categories %}
+                <div class="cs-badge-row">
+                  {% for name in e.channel_categories %}
+                  <span class="cs-badge cs-badge--blue">{{ name }}</span>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <span class="cs-muted-s">仅身份元数据</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% if not entries %}
+            <tr><td colspan="6"><div class="cs-table__empty">没有匹配的条目</div></td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+    <div class="cs-container__footer">
+      <span class="cs-muted-s">共 {{ entries | length }} 条</span>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

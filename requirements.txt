@@ -1,0 +1,5 @@
+# ModelProof 依赖
+# 核心（core/）只用标准库；以下是 CLI 与 Web 需要的。
+click>=8.1,<9
+PyYAML>=6.0,<7
+Flask>=3.0,<4

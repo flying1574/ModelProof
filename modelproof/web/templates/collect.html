@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}采集基准 · ModelProof{% endblock %}
+
+{% block content %}
+
+<div class="cs-content-header">
+  <h1>采集自定义基准</h1>
+  <p class="cs-content-header__desc">
+    对你有权限访问的端点跑一遍探针，把观测到的指纹写成一个基准条目。
+    采完之后，验证时选这个库，就能在自己的数据范围内做闭集比对。
+  </p>
+  <div class="cs-content-header__actions">
+    <a class="cs-btn cs-btn--normal" href="/baselines">去看看已采到的条目</a>
+  </div>
+</div>
+
+<div class="cs-stack">
+
+  <!-- ===== 端点 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>端点</h2>
+      <p class="cs-container__desc">采集要用真实请求换数据，请先确认你对这个端点有调用权限。</p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-form-grid">
+        <div class="cs-field">
+          <label for="c-base">Base URL</label>
+          <input class="cs-input" type="text" id="c-base" placeholder="https://api.example.com/v1" autocomplete="off">
+        </div>
+        <div class="cs-field">
+          <label for="c-key">API key</label>
+          <input class="cs-input" type="password" id="c-key" placeholder="sk-…" autocomplete="off">
+          <span class="cs-field__hint">不落盘、不写日志</span>
+        </div>
+        <div class="cs-field">
+          <label for="c-model">模型 ID</label>
+          <input class="cs-input" type="text" id="c-model" placeholder="gpt-4o-2024-11-20" autocomplete="off">
+          <span class="cs-field__hint">这条基准要以哪个 ID 存档</span>
+        </div>
+        <div class="cs-field">
+          <label for="c-aliases">别名 <span class="cs-field__sub">（可选）</span></label>
+          <input class="cs-input" type="text" id="c-aliases" placeholder="gpt-4o, gpt4o" autocomplete="off">
+          <span class="cs-field__hint">逗号分隔，便于之后按别名命中</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 身份标注 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>这条基准是谁</h2>
+      <p class="cs-container__desc">
+        基准必须自带身份答案。你在这里声明它是什么，之后验证才有对照可依——
+        这一步不能省，也不能由工具猜。
+      </p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-form-grid">
+        <div class="cs-field">
+          <label for="c-vendor">厂商 *</label>
+          <input class="cs-input" type="text" id="c-vendor" placeholder="openai" autocomplete="off">
+        </div>
+        <div class="cs-field">
+          <label for="c-family">家族 *</label>
+          <input class="cs-input" type="text" id="c-family" placeholder="gpt-4o" autocomplete="off">
+        </div>
+        <div class="cs-field">
+          <label for="c-series">系列</label>
+          <input class="cs-input" type="text" id="c-series" placeholder="gpt-4o" autocomplete="off">
+        </div>
+        <div class="cs-field">
+          <label for="c-version">版本</label>
+          <input class="cs-input" type="text" id="c-version" placeholder="2024-11-20" autocomplete="off">
+        </div>
+        <div class="cs-field">
+          <label for="c-tier">溯源等级</label>
+          <select class="cs-select" id="c-tier">
+            <option value="official">official · 官方端点实测（权重 1.0）</option>
+            <option value="community" selected>community · 可信第三方实测（0.8）</option>
+            <option value="derived">derived · 推导而来（0.5，不可单独定论）</option>
+          </select>
+          <span class="cs-field__hint">等级决定这条基准的话语权，也决定它能不能单独支撑结论</span>
+        </div>
+        <div class="cs-field">
+          <label for="c-note">备注</label>
+          <input class="cs-input" type="text" id="c-note" placeholder="采集背景、用途等" autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 存到哪个库 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>存到哪个基准库</h2>
+      <p class="cs-container__desc">不同用途的对照数据分开存，验证时再挑一个做闭集。</p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-form-grid">
+        <div class="cs-field">
+          <label for="c-bank">已有库</label>
+          <select class="cs-select" id="c-bank">
+            {% for b in banks %}
+            <option value="{{ b.id }}" {% if b.id == 'default' %}selected{% endif %}>
+              {{ b.name }}（{{ b.model_count }} 条）
+            </option>
+            {% endfor %}
+            <option value="__new__">＋ 新建一个…</option>
+          </select>
+        </div>
+        <div class="cs-field" id="c-new-bank-field" style="display:none">
+          <label for="c-new-bank">新库 ID</label>
+          <input class="cs-input" type="text" id="c-new-bank" placeholder="my-company" autocomplete="off">
+          <span class="cs-field__hint">只允许字母数字、-、_</span>
+        </div>
+        <div class="cs-field" id="c-new-bank-name-field" style="display:none">
+          <label for="c-new-bank-name">显示名 <span class="cs-field__sub">（可选）</span></label>
+          <input class="cs-input" type="text" id="c-new-bank-name" placeholder="公司内部端点" autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 采集项：只给数量与大类 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>采集什么</h2>
+      <p class="cs-container__desc">
+        填一个数量即可，采哪几个大类由工具按优先级决定：词表指纹、行为特征、
+        后端指纹排在最前（后端指纹搭车采集，不额外发请求）。
+      </p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-form-grid">
+        <div class="cs-field">
+          <label for="c-channel-count">采集项数量</label>
+          <input class="cs-input" type="number" id="c-channel-count"
+                 min="{{ catalog.min }}" max="{{ catalog.max }}" value="{{ catalog.default }}" step="1">
+          <span class="cs-field__hint">
+            默认 {{ catalog.default }} 项 · 可选 1 – {{ catalog.max }} 项（{{ catalog.max }} = 全部采集大类）
+          </span>
+        </div>
+      </div>
+      <div id="channel-coverage" style="margin-top: var(--space-m)"></div>
+    </div>
+    <div class="cs-container__footer">
+      <div class="cs-btn-row">
+        <button class="cs-btn cs-btn--normal" id="btn-plan" type="button">算一下要发多少请求</button>
+        <span class="cs-muted-s" id="collect-status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 执行 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>执行采集</h2>
+      <p class="cs-container__desc">采集是长任务，后台跑，进度实时可见；切走页面也不会丢。</p>
+    </div>
+    <div class="cs-container__content">
+      <div id="collect-progress"></div>
+      <div id="collect-result" style="margin-top: var(--space-m)"></div>
+    </div>
+    <div class="cs-container__footer">
+      <button class="cs-btn cs-btn--primary" id="btn-collect" type="button">开始采集</button>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>MP.initCollect();</script>
+{% endblock %}

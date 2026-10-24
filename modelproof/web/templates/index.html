@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}验证 · ModelProof{% endblock %}
+
+{% block content %}
+
+<div class="cs-content-header">
+  <h1>模型身份验证</h1>
+  <p class="cs-content-header__desc">
+    给端点发一组与语义无关的探针，比对实测指纹，判定它背后跑的到底是哪个
+    厂商 / 家族 / 系列 / 版本，并识别这个入口是谁搭的。先做消耗预估，再决定跑不跑。
+  </p>
+  <div class="cs-content-header__actions">
+    <a class="cs-btn cs-btn--normal" href="/baselines">浏览基准库</a>
+  </div>
+</div>
+
+<div class="cs-stack">
+
+  <!-- ===== 端点配置 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>端点</h2>
+      <p class="cs-container__desc">
+        密钥只在内存中流转，不写日志、不落盘。也可改用环境变量 <code>MODELPROOF_API_KEY</code>。
+      </p>
+    </div>
+    <div class="cs-container__content">
+
+      <div class="cs-form-grid">
+        <div class="cs-field">
+          <label for="f-base">Base URL</label>
+          <input class="cs-input" type="text" id="f-base" placeholder="https://api.example.com/v1" autocomplete="off">
+          <span class="cs-field__hint">官方或中转端点均可，协议会自动探测</span>
+        </div>
+
+        <div class="cs-field">
+          <label for="f-key">API key</label>
+          <input class="cs-input" type="password" id="f-key" placeholder="sk-…" autocomplete="off">
+          <span class="cs-field__hint">不会离开本机</span>
+        </div>
+
+        <div class="cs-field">
+          <label for="f-model">模型 ID</label>
+          <input class="cs-input" type="text" id="f-model" placeholder="claude-opus-5-5" autocomplete="off">
+          <span class="cs-field__hint">端点上要测的那个模型</span>
+        </div>
+
+        <div class="cs-field">
+          <label for="f-candidates">对照模型 <span class="cs-field__sub">（可选，单选）</span></label>
+          <select class="cs-select" id="f-candidates">
+            <option value="" selected>（不选 · 在基准库内自由比对）</option>
+          </select>
+          <span class="cs-field__hint">
+            单次测试只能指定一个对照模型。例如测 claude-sonnet-5-5 时，
+            可以指定它自己作为对照，也可以留空 —— 留空就是在整个基准库里比对。
+          </span>
+        </div>
+
+        <div class="cs-field">
+          <label for="f-maxsec">时间上限 <span class="cs-field__sub">（秒）</span></label>
+          <input class="cs-input" type="number" id="f-maxsec" step="10" min="0" placeholder="不限制">
+          <span class="cs-field__hint">超时会中断并保留已拿到的证据</span>
+        </div>
+      </div>
+
+      <div class="cs-section">
+        <label class="cs-check">
+          <input type="checkbox" id="f-reasoning">
+          <span>
+            <span class="cs-check__label">目标为推理模型</span>
+            <span class="cs-check__desc">输出 token 预估按 3.5 倍计入（思考过程也算量）</span>
+          </span>
+        </label>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== 测试模式 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>测试模式</h2>
+      <p class="cs-container__desc">
+        自动测试替你选项目，手动测试让你自己挑。两者跑的是同一批探针，判定逻辑完全一致。
+      </p>
+    </div>
+    <div class="cs-container__content">
+
+      <div class="cs-field">
+        <label>模式</label>
+        <div class="cs-radio-row" id="mode-row">
+          <label class="cs-radio">
+            <input type="radio" name="test-mode" value="auto" checked>
+            <span>自动测试</span>
+          </label>
+          <label class="cs-radio">
+            <input type="radio" name="test-mode" value="manual">
+            <span>手动测试</span>
+          </label>
+        </div>
+        <span class="cs-field__hint" id="mode-hint">
+          自动：工具按通道优先级替你挑 —— 硬信号与零成本通道排在前。
+        </span>
+      </div>
+
+      <!-- 自动 · 快速 -->
+      <div class="cs-subpanel" id="panel-auto">
+        <div class="cs-field">
+          <label>自动方式</label>
+          <div class="cs-radio-row">
+            <label class="cs-radio">
+              <input type="radio" name="auto-mode" value="quick" checked>
+              <span>快速测试</span>
+            </label>
+            <label class="cs-radio">
+              <input type="radio" name="auto-mode" value="category">
+              <span>特定项目测试</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="cs-field" id="field-quick">
+          <label for="f-item-count">测试项数量</label>
+          <input class="cs-input" type="number" id="f-item-count"
+                 min="{{ catalog.min }}" max="{{ catalog.max }}" value="{{ catalog.default }}" step="1">
+          <span class="cs-field__hint">
+            默认 {{ catalog.default }} 项（标准组合）· 可选 1 – {{ catalog.max }} 项（{{ catalog.max }} = 全部）
+          </span>
+        </div>
+
+        <div class="cs-field" id="field-category" style="display:none">
+          <label>选择测试大类</label>
+          <div class="cs-item-list" id="category-list"></div>
+          <span class="cs-field__hint">选中大类下的全部测试项都会跑</span>
+        </div>
+
+        <div id="item-coverage"></div>
+      </div>
+
+      <!-- 手动 -->
+      <div class="cs-subpanel" id="panel-manual" style="display:none">
+        <div class="cs-field">
+          <label>勾选测试项</label>
+          <div id="manual-list"></div>
+          <span class="cs-field__hint">每一项都会单独发请求，请求数随勾选累加</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="cs-container__footer">
+      <span class="cs-muted-s">C1 词表指纹与 C6 后端指纹属于硬信号：词表训练时即固定，套壳也改不了。</span>
+    </div>
+  </section>
+
+  <!-- ===== 预估与运行 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>预估与运行</h2>
+      <p class="cs-container__desc">预估是纯计算，不会发起任何请求。</p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-btn-row">
+        <button class="cs-btn cs-btn--normal" id="btn-estimate" type="button">预估消耗</button>
+        <span class="cs-muted-s" id="run-status"></span>
+      </div>
+      <div id="estimate-box" style="display:none; margin-top: var(--space-m)"></div>
+
+      <!-- 进度：整条 + 当前项 + 已完成/总数 -->
+      <div id="progress" style="margin-top: var(--space-m)"></div>
+      <div id="resume" style="margin-top: var(--space-s)"></div>
+    </div>
+    <div class="cs-container__footer">
+      <button class="cs-btn cs-btn--primary" id="btn-run" type="button">运行验证</button>
+      <span class="cs-muted-s">退出码 0 成功 · 2 弃权 · 3 真伪不符</span>
+    </div>
+  </section>
+
+  <!-- ===== 结果 ===== -->
+  <div id="result"></div>
+
+  <!-- ===== 基准库概览 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>基准库</h2>
+      <p class="cs-container__desc">闭集判定的对照数据来源。</p>
+    </div>
+    <div class="cs-container__content">
+      <div class="cs-columns">
+        <div class="cs-box">
+          <div class="cs-box__label">条目总数</div>
+          <div class="cs-box__value">{{ stats.total }}</div>
+          <div class="cs-box__note">{{ stats.by_vendor | length }} 个厂商</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">已有词表指纹</div>
+          <div class="cs-box__value">{{ stats.by_channel.get('tokenizer', 0) }}</div>
+          <div class="cs-box__note">C1 tokenizer</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">已有行为特征</div>
+          <div class="cs-box__value">{{ stats.by_channel.get('behavior', 0) }}</div>
+          <div class="cs-box__note">C3 behavior</div>
+        </div>
+        <div class="cs-box">
+          <div class="cs-box__label">官方溯源条目</div>
+          <div class="cs-box__value">{{ stats.by_tier.get('official', 0) }}</div>
+          <div class="cs-box__note">权重 1.0，可信度最高</div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--space-l)">
+        {% if stats.by_channel.get('tokenizer', 0) == 0 %}
+        <div class="cs-alert cs-alert--warning">
+          <span class="cs-alert__icon">!</span>
+          <div class="cs-alert__body">
+            <div class="cs-alert__title">基准库还没有实测指纹</div>
+            当前只有身份元数据，闭集判定会因缺少对照数据而弃权 —— 这是设计如此，不会硬猜。
+            请用 <code>modelproof baseline import</code> 从你有权限访问的端点采集：
+            <div style="margin-top:6px"><code>modelproof baseline import &lt;端点&gt; --model &lt;ID&gt; --vendor … --family … --tier official</code></div>
+          </div>
+        </div>
+        {% else %}
+        <div class="cs-alert cs-alert--success">
+          <span class="cs-alert__icon">✓</span>
+          <div class="cs-alert__body">
+            已有 {{ stats.by_channel.get('tokenizer', 0) }} 条带词表指纹的条目，可参与闭集判定。
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="cs-container__footer">
+      <a class="cs-btn cs-btn--normal" href="/baselines">查看全部条目</a>
+    </div>
+  </section>
+
+  <!-- ===== 后端指纹台账 ===== -->
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>后端指纹台账</h2>
+      <p class="cs-container__desc">
+        <code>system_fingerprint</code> 记的是「模型运行的后端配置」。它的价值不在识别身份，
+        而在<strong>变更检测</strong>——指纹一变，说明上游换了部署或模型版本。
+      </p>
+    </div>
+    <div class="cs-container__content">
+      <div id="fp-ledger"><span class="cs-muted-s">加载中…</span></div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>MP.initPage();</script>
+{% endblock %}

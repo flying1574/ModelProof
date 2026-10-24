@@ -1,0 +1,16 @@
+# 阿里云百炼 / Qwen 价格表
+# as_of: 2026-10 · 单位：CNY / 百万 token
+name: qwen
+currency: CNY
+input_per_mtok: 4.0
+output_per_mtok: 12.0
+avg_seconds_per_request: 2.0
+tokens_per_second: 60.0
+
+models:
+  qwen3.6-plus:
+    input_per_mtok: 4.0
+    output_per_mtok: 12.0
+  qwen3.5-max:
+    input_per_mtok: 20.0
+    output_per_mtok: 60.0

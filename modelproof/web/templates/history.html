@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}历史记录 · ModelProof{% endblock %}
+
+{% block content %}
+
+<div class="cs-content-header">
+  <h1>测试历史</h1>
+  <p class="cs-content-header__desc">
+    每次验证都存成一份任务记录。任务文件本身就是事实来源，
+    所以进程重启、切走页面都不影响——点开任意一条都能看到当时的完整报告并导出。
+  </p>
+  <div class="cs-content-header__actions">
+    <button class="cs-btn cs-btn--normal" id="btn-refresh" type="button">刷新</button>
+  </div>
+</div>
+
+<div class="cs-stack">
+
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>任务</h2>
+      <p class="cs-container__desc">
+        结论取最深的那一层判定值；真伪不符优先显示。
+      </p>
+    </div>
+    <div class="cs-container__content">
+      <div id="history-body">
+        {% if rows %}
+        <div class="cs-table-wrap">
+          <table class="cs-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>被测模型</th>
+                <th>基准库</th>
+                <th>结论</th>
+                <th>真伪</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="history-rows">
+              {% for r in rows %}
+              <tr data-id="{{ r.id }}">
+                <td class="cs-nowrap cs-muted-s">{{ (r.created_at or '') | replace('T', ' ') | replace('Z', '') }}</td>
+                <td>
+                  <code>{{ r.model }}</code>
+                  {% if r.claim %}<div class="cs-table__sub">声明 {{ r.claim }}</div>{% endif %}
+                </td>
+                <td>{{ r.bank }}</td>
+                <td>
+                  {% if r.conclusion %}
+                    {{ r.conclusion }}
+                    <div class="cs-table__sub">{{ (r.confidence * 100) | round | int }}%</div>
+                  {% else %}
+                    <span class="cs-muted-s">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r.truthfulness %}
+                    <span class="cs-status cs-status--{% if r.truthfulness == 'consistent' %}success{% elif r.truthfulness == 'inconsistent' %}error{% elif r.truthfulness == 'suspicious' %}warning{% else %}info{% endif %}">
+                      {% if r.truthfulness == 'consistent' %}一致{% elif r.truthfulness == 'inconsistent' %}不符{% elif r.truthfulness == 'suspicious' %}存疑{% else %}未判定{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="cs-muted-s">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="cs-status cs-status--{% if r.status == 'completed' %}success{% elif r.status == 'failed' %}error{% else %}pending{% endif %}">
+                    {% if r.status == 'completed' %}完成{% elif r.status == 'failed' %}失败{% else %}运行中{% endif %}
+                  </span>
+                </td>
+                <td class="cs-nowrap">
+                  <a class="cs-btn cs-btn--link" href="/history/{{ r.id }}">详情</a>
+                  {% if r.status == 'completed' %}
+                  <a class="cs-btn cs-btn--link" href="/v1/history/{{ r.id }}/export?format=json">JSON</a>
+                  <a class="cs-btn cs-btn--link" href="/v1/history/{{ r.id }}/export?format=md">MD</a>
+                  {% endif %}
+                  <a class="cs-btn cs-btn--link" href="#" onclick="MP.removeTask('{{ r.id }}');return false;">删除</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="cs-table__empty">还没有任何记录。去「验证」或「采集基准」跑一次就有了。</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="cs-container__footer">
+      <span class="cs-muted-s">任务目录 <code>~/.modelproof/tasks</code>；导出报告落到 <code>~/.modelproof/reports</code></span>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>MP.initHistory();</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ModelProof{% endblock %}</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<a class="cs-sr-only" href="#main">跳到主要内容</a>
+
+<header class="cs-top-nav">
+  <div class="cs-top-nav__brand">
+    <span class="cs-logo-mark" aria-hidden="true">MP</span>
+    <div class="cs-brand-text">
+      <strong>ModelProof</strong>
+      <span>模型身份验真工具</span>
+    </div>
+  </div>
+
+  <nav class="cs-top-nav__nav" aria-label="主导航">
+    <a href="/" class="{{ 'is-active' if request.endpoint == 'index' }}">验证</a>
+    <a href="/collect" class="{{ 'is-active' if request.endpoint == 'collect_page' }}">采集基准</a>
+    <a href="/baselines" class="{{ 'is-active' if request.endpoint == 'baselines_page' }}">基准库</a>
+    <a href="/history" class="{{ 'is-active' if request.endpoint in ['history_page', 'history_detail_page'] }}">历史</a>
+  </nav>
+
+  <div class="cs-top-nav__utils">
+    <span>v0.2.0</span>
+  </div>
+</header>
+
+<main class="cs-main" id="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="cs-footer">
+  <p>统计指纹存在误报，结果仅供参考，不得作为法律、纪律或违约认定的依据。</p>
+</footer>
+
+<script src="/static/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

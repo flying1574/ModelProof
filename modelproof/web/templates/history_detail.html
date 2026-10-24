@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}任务详情 · ModelProof{% endblock %}
+
+{% block content %}
+
+<div class="cs-content-header">
+  <h1>任务详情</h1>
+  <p class="cs-content-header__desc">
+    <code id="task-id">{{ task_id }}</code>
+  </p>
+  <div class="cs-content-header__actions">
+    <a class="cs-btn cs-btn--normal" href="/history">返回历史</a>
+  </div>
+</div>
+
+<div class="cs-stack">
+  <section class="cs-container">
+    <div class="cs-container__header">
+      <h2>任务信息</h2>
+    </div>
+    <div class="cs-container__content" id="task-meta">
+      <span class="cs-muted-s">加载中…</span>
+    </div>
+    <div class="cs-container__footer" id="task-actions" style="display:none">
+      <div class="cs-btn-row">
+        <a class="cs-btn cs-btn--normal" id="btn-export-json" href="#">导出 JSON</a>
+        <a class="cs-btn cs-btn--normal" id="btn-export-md" href="#">导出 Markdown</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="task-progress"></div>
+  <div id="task-report"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>MP.initHistoryDetail('{{ task_id }}');</script>
+{% endblock %}

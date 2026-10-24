@@ -1,0 +1,15 @@
+# 自定义测试集。与内置套件同名会覆盖内置定义。
+# items 里可以写测试项 ID，也可以写通道名（表示取该通道全部测试项）。
+suites:
+  - id: cheap
+    name: 极省
+    items:
+      - backend_fp.read
+      - gateway.probe
+    description: 只做零成本与近零成本的探测，适合高频巡检。
+
+  - id: family-only
+    name: 只定家族
+    items:
+      - tokenizer.marginal_cost
+    description: 只用词表指纹定家族，成本可控、抗干扰最强。

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}报告 · ModelProof{% endblock %}
+
+{% block content %}
+<div class="cs-content-header">
+  <h1>验证报告</h1>
+  <p class="cs-content-header__desc">任务 <code id="tid">{{ task_id }}</code></p>
+</div>
+
+<div class="cs-stack">
+  <div id="progress"></div>
+  <div id="result"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>MP.loadReport("{{ task_id }}");</script>
+{% endblock %}

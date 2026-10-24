@@ -1,0 +1,24 @@
+# OpenAI 价格表
+# as_of: 2026-10 · 单位：USD / 百万 token
+# 注意：这些是**预估用的默认值**，不是精确报价。真实价格请以厂商定价页为准；
+# 预估只会影响「这次大概花多少」，不影响任何判定结论。
+name: openai
+currency: USD
+input_per_mtok: 2.5
+output_per_mtok: 10.0
+avg_seconds_per_request: 2.5
+tokens_per_second: 50.0
+
+models:
+  gpt-6-astra:
+    input_per_mtok: 3.0
+    output_per_mtok: 15.0
+  gpt-6-sol:
+    input_per_mtok: 2.0
+    output_per_mtok: 8.0
+  gpt-6-luna:
+    input_per_mtok: 0.6
+    output_per_mtok: 2.4
+  gpt-5.6:
+    input_per_mtok: 1.5
+    output_per_mtok: 6.0

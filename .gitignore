@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# 运行产物
+.modelproof/
+baselines/fingerprints/backend_fingerprints.json
+tests/tmp_baselines/
+
+# 标定结果由脚本生成，不入库
+modelproof/core/fusion/thresholds.json
+
+# 词表源文件缓存：scripts/build_tokenizer_references.py 从 HuggingFace /
+# tiktoken 下载的原始 tokenizer.json / tiktoken.model，单个 5–40 MB，
+# 合计 100 MB 以上。真正入库的是抽出来的 37 格计数
+# （baselines/fingerprints/tokenizer_references.json，几 KB），
+# 源文件随时可以用 --fetch 重新拉，不该占仓库体积。
+baselines/fingerprints/tokenizers/
+
+.pytest_cache/
+.coverage
+
+# 本地临时快照
+mp_before.json
+
+# WorkBuddy 工作笔记，不是项目内容
+.workbuddy/
